@@ -1,6 +1,8 @@
 #!/bin/bash
 #
 # install - install scripts and, if not already present, jq
+#
+INSTALL_DIR="/usr/local/bin"
 
 if [[ $EUID -eq 0 ]]
 then
@@ -62,6 +64,7 @@ install_package() {
 }
 
 cd "${SCRIPT_PATH}"
+# Detect if we are in the repo or executing the install script with curl | bash
 [ -f view_chat.sh ] || {
   if [ -d SLCommand ]; then
     if [ -x SLCommand/install ]; then
@@ -83,23 +86,24 @@ cd "${SCRIPT_PATH}"
   fi
 }
 
-[ -d /usr/local/bin ] || ${SUDO} mkdir -p /usr/local/bin
+[ -d ${INSTALL_DIR} ] || ${SUDO} mkdir -p ${INSTALL_DIR}
 
+# Install all shell scripts in this repo to ${INSTALL_DIR}
 for bsc in *.sh
 do
   [ "${bsc}" == "*.sh" ] && continue
   cmd_name=$(echo "${bsc}" | sed -e "s/.sh$//")
-  ${SUDO} cp ${bsc} /usr/local/bin/${cmd_name}
-  ${SUDO} chmod 755 /usr/local/bin/${cmd_name}
+  ${SUDO} cp ${bsc} ${INSTALL_DIR}/${cmd_name}
+  ${SUDO} chmod 755 ${INSTALL_DIR}/${cmd_name}
 done
 
 have_jq=$(type -p jq)
 [ "${have_jq}" ] || install_package jq
 
 printf "\n\nInstallation of the Second Life Bash commands is complete.\n"
-printf "\nAdd /usr/local/bin to your execution PATH if it is not already included.\n"
+printf "\nAdd ${INSTALL_DIR} to your execution PATH if it is not already included.\n"
 printf "\nThe SLCommand cloned repository path is ${SCRIPT_PATH}\n"
-printf "\nUpdates can be performed with:"
+printf "\nUpdates can be performed with:\n"
 printf "\n\tcd ${SCRIPT_PATH}"
 printf "\n\tgit pull"
 printf "\n\t./install\n\n"
