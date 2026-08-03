@@ -1,0 +1,105 @@
+#!/bin/bash
+#
+# install - install scripts and, if not already present, jq
+
+if [[ $EUID -eq 0 ]]
+then
+  SUDO=
+else
+  SUDO=sudo
+fi
+
+SCRIPT_PATH="$(
+  cd "$(dirname "$0")"
+  pwd -P
+)"
+have_real=$(type -p realpath)
+[ "${have_real}" ] && SCRIPT_PATH="$(realpath $SCRIPT_PATH)"
+
+have_git=$(type -p git)
+
+install_package() {
+  pkg="$1"
+  printf "\nInstalling ${pkg}\n"
+  darwin=
+  mach=$(uname -m)
+  platform=$(uname -s)
+  [ "${platform}" == "Darwin" ] && darwin=1
+  if [ "${darwin}" ]; then
+    have_brew=$(type -p brew)
+    [ "${have_brew}" ] && brew install ${pkg} > /dev/null 2>&1
+  else
+    have_apt=$(type -p apt)
+    if [ "${have_apt}" ]; then
+      ${SUDO} apt install ${pkg} > /dev/null 2>&1
+    else
+      have_pac=$(type -p pacman)
+      if [ "${have_pac}" ]; then
+        ${SUDO} pacman -S ${pkg} > /dev/null 2>&1
+      else
+        have_apk=$(type -p apk)
+        if [ "${have_apk}" ]; then
+          ${SUDO} apk add ${pkg} > /dev/null 2>&1
+        else
+          have_dnf=$(type -p dnf)
+          if [ "${have_dnf}" ]; then
+            ${SUDO} dnf install ${pkg} > /dev/null 2>&1
+          else
+            have_xbps=$(type -p xbps-install)
+            if [ "${have_xbps}" ]; then
+              ${SUDO} xbps-install -S ${pkg} > /dev/null 2>&1
+            else
+              have_zypp=$(type -p zypper)
+              [ "${have_zypp}" ] && {
+                ${SUDO} zypper install ${pkg} > /dev/null 2>&1
+              }
+            fi
+          fi
+        fi
+      fi
+    fi
+  fi
+}
+
+cd "${SCRIPT_PATH}"
+[ -f view_chat.sh ] || {
+  if [ -d SLCommand ]; then
+    if [ -x SLCommand/install ]; then
+      exec SLCommand/install
+      exit 0
+    else
+      echo "ERROR: cannot locate view_chat. Exiting."
+      exit 1
+    fi
+  else
+    if [ "${have_git}" ]; then
+      git clone https://github.com/missyrestless/SLCommand.git
+      exec SLCommand/install
+      exit 0
+    else
+      echo "ERROR: cannot locate view_chat or git. Exiting."
+      exit 1
+    fi
+  fi
+}
+
+[ -d /usr/local/bin ] || ${SUDO} mkdir -p /usr/local/bin
+
+for bsc in *.sh
+do
+  [ "${bsc}" == "*.sh" ] && continue
+  cmd_name=$(echo "${bsc}" | sed -e "s/.sh$//")
+  ${SUDO} cp ${bsc} /usr/local/bin/${cmd_name}
+  ${SUDO} chmod 755 /usr/local/bin/${cmd_name}
+done
+
+have_jq=$(type -p jq)
+[ "${have_jq}" ] || install_package jq
+
+printf "\n\nInstallation of the Second Life Bash commands is complete.\n"
+printf "\nAdd /usr/local/bin to your execution PATH if it is not already included.\n"
+printf "\nThe SLCommand cloned repository path is ${SCRIPT_PATH}\n"
+printf "\nUpdates can be performed with:"
+printf "\n\tcd ${SCRIPT_PATH}"
+printf "\n\tgit pull"
+printf "\n\t./install\n\n"
