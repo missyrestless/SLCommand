@@ -10,7 +10,7 @@
 # Set to the default avatar folder you wish to use, dot replaced by underscore in Avatar name
 DEF_AVI="missy_restless"
 # Set one or both of these, Mac and/or Linux, to the default chat log you wish to view
-MAC_DEF_CHAT="Katia108"
+MAC_DEF_CHAT="Kristi Kiko"
 LIN_DEF_CHAT="Doc Rae"
 ## END User defined variables
 
@@ -22,27 +22,31 @@ LIN_DIR="/home/${USER}/.firestorm_x64"
 usage() {
   printf "Usage: view_chat [-a my_avatar] [-c their_avatar] [-eflt] [-s search] [-h]"
   printf "\n\tDisplay chat or teleport history"
-  printf "\nWhere:"
-  printf "\n\t-a my_avatar specifies your avatar name [default: ${DEF_AVI}]"
-  printf "\n\t-c their_avatar specifies avatar name of the person you chatted with [default: ${DEF_CHAT}]"
-  printf "\n\t-e indicates edit mode"
-  printf "\n\t-f indicates find chat files matching search term"
-  printf "\n\t-i indicates ignore case when using search term"
-  printf "\n\t-l indicates list files containing search term"
-  printf "\n\t-s search specifies a search term"
-  printf "\n\t-t indicates display teleport history"
-  printf "\n\t-h displays this usage message and exits"
-  printf "\n\tChat Folder Path: ${FDIR}/${AVI}"
-  printf "\n\tAvatar Chat Log: ${CHAT}"
-  printf "\nExamples:"
-  printf "\n\tDisplay default chat log with avatar Easy Islay:"
-  printf "\n\t\tview_chat -c \"Easy Islay\""
-  printf "\n\tDisplay chat log for avatar anya.ordinary with avatar Missy Restless:"
-  printf "\n\t\tview_chat -a anya_ordinary -c \"Missy Restless\""
-  printf "\n\tList chat logs matching search term \"doc\":"
-  printf "\n\t\tview_chat -f -s doc"
-  printf "\n\tDisplay chat with avatar \"Easy Islay\" matching search term \"send\":"
-  printf "\n\t\tview_chat -c \"Easy Islay\" -s send\n"
+  if [ "$1" == "brief" ]; then
+    printf "\n"
+  else
+    printf "\nWhere:"
+    printf "\n\t-a my_avatar specifies your avatar name [default: ${DEF_AVI}]"
+    printf "\n\t-c their_avatar specifies avatar name of the person you chatted with [default: ${DEF_CHAT}]"
+    printf "\n\t-e indicates edit mode"
+    printf "\n\t-f indicates find chat files matching search term"
+    printf "\n\t-i indicates ignore case when using search term"
+    printf "\n\t-l indicates list files containing search term"
+    printf "\n\t-s search specifies a search term"
+    printf "\n\t-t indicates display teleport history"
+    printf "\n\t-h displays this usage message and exits"
+    printf "\n\tChat Folder Path: ${FDIR}/${AVI}"
+    printf "\n\tAvatar Chat Log: ${CHAT}"
+    printf "\nExamples:"
+    printf "\n\tDisplay default chat log with avatar Easy Islay:"
+    printf "\n\t\tview_chat -c \"Easy Islay\""
+    printf "\n\tDisplay chat log for avatar anya.ordinary with avatar Missy Restless:"
+    printf "\n\t\tview_chat -a anya_ordinary -c \"Missy Restless\""
+    printf "\n\tList chat logs matching search term \"doc\":"
+    printf "\n\t\tview_chat -f -s doc"
+    printf "\n\tDisplay chat with avatar \"Easy Islay\" matching search term \"send\":"
+    printf "\n\t\tview_chat -c \"Easy Islay\" -s send\n"
+  fi
   exit 1
 }
 
@@ -171,8 +175,31 @@ if [ "${SEARCH}" ]; then
   fi
 else
   [ -f "${FDIR}/${AVI}/${CHAT}" ] || {
-    erro "Cannot locate Avatar chat log ${FDIR}/${AVI}/${CHAT}"
-    usage
+    # Search for a single matching chat log
+    PREC="${CHAT}"
+    CHAT=$(echo "${CHAT}" | sed -e "s/.txt$//")
+    foundone=
+    for av in "${FDIR}/${AVI}/${CHAT}"*
+    do
+      [ "${av}" == "${FDIR}/${AVI}/${CHAT}*" ] && continue
+      [ -f "${av}" ] && {
+        if [ "${foundone}" ]; then
+          foundone=
+          TWOC=$(basename "${av}")
+          warn "Multiple chat logs match ${PREC}"
+          warn "At least ${CHAT} and ${TWOC}"
+          break
+        else
+          foundone=1
+          CHAT=$(basename "${av}")
+        fi
+      }
+    done
+    [ "${foundone}" ] || {
+      CHAT="${PREC}"
+      erro "Cannot locate Avatar chat log ${FDIR}/${AVI}/${CHAT}"
+      usage brief
+    }
   }
   if [ "${EDIT_MODE}" ]; then
     if [ "${EDITOR}" ]; then
