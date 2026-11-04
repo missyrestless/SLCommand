@@ -213,6 +213,10 @@ else
       fi
     fi
   else
+    FROM=$(echo "${AVI}" | sed -e "s/_/\./g")
+    NAME=$(echo "${CHAT}" | sed -e "s/.txt$//")
+    info "Chat log between ${FROM} and ${NAME}"
+    printf "\n"
     cat -- "${FDIR}/${AVI}/${CHAT}"
   fi
 fi
